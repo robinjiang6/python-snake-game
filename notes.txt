@@ -1,0 +1,5 @@
+todo:
+initialize board mid game
+starting snake length
+make turning smoother for when the snake hasnt turned yet
+    - turning halfway twice allows snake to go into itself 180 degrees
