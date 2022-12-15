@@ -11,13 +11,15 @@ TARGET_FRAMERATE = 30
 ROWS = 9
 COLUMNS = 16
 FONT = "Arial"
-BACKGROUND_COLOR = pygame.Color(50, 150, 120)
-BOARD_COLOR = pygame.Color(0, 0, 0)
-BOARD_BORDER_COLOR = pygame.Color(255, 255, 255)
+BACKGROUND_COLOR = pygame.Color(7, 70, 77)
+TEXT_COLOR = pygame.Color(255, 255, 255)
+BOARD_COLOR = pygame.Color(6, 42, 46)
+BOARD_BORDER_COLOR = pygame.Color(11, 125, 138)
+BUTTON_BACKGROUND_COLOR = pygame.Color(13, 105, 115)
 BODY_COLOR = pygame.Color(50, 200, 100)
 HEAD_COLOR = pygame.Color(50, 100, 200)
 POINT_COLOR = pygame.Color(200, 50, 50)
-KEY_DICT = {pygame.K_LEFT: "LEFT", pygame.K_a: "LEFT", pygame.K_UP: "UP", pygame.K_w: "UP", pygame.K_s: "DOWN", pygame.K_DOWN: "DOWN", pygame.K_d: "RIGHT", pygame.K_RIGHT: "RIGHT"}
+#KEY_DICT = {pygame.K_LEFT: "LEFT", pygame.K_a: "LEFT", pygame.K_UP: "UP", pygame.K_w: "UP", pygame.K_s: "DOWN", pygame.K_DOWN: "DOWN", pygame.K_d: "RIGHT", pygame.K_RIGHT: "RIGHT"}
 
 
 class SnakeGame:
@@ -28,8 +30,12 @@ class SnakeGame:
         self._game = python_snake_game_model.SnakeGameState(ROWS, COLUMNS)
         self._phase = "START"
         self._starting_button = None
+        self._restart_button = None
         self._game_rect = None
-        self._keys_pressed = []
+
+        # keeping score
+        self._high_score = 0
+        self._current_score = 1
 
     def run(self) -> None:
         pygame.init()
@@ -44,6 +50,7 @@ class SnakeGame:
                 self._cycles = 0
                 if self._phase == "GAME":
                     self._game.progress_game()
+                    self._current_score = self._game.get_snake_length()
             self._handle_events()
             self._redraw()
         pygame.quit()
@@ -56,12 +63,13 @@ class SnakeGame:
                 self._running = False
             elif event.type == pygame.KEYDOWN:
                 self._turn_snake(event.key)
-            elif event.type == pygame.KEYUP:
-                self._remove_key(event.key)
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 self._handle_click(event.pos)
         if self._game.get_game_over():
             self._phase = "GAME_OVER"
+            if self._current_score > self._high_score:
+                self._high_score = self._current_score
+
 
     def _resize_surface(self, size: tuple[int, int]) -> None:
         """Resizes the pygame window to the size."""
@@ -80,6 +88,8 @@ class SnakeGame:
                 self._game.turn_north()
         elif self._phase == "START" and key == pygame.K_SPACE:
             self._phase = "GAME"
+        elif self._phase == "GAME_OVER" and key == pygame.K_SPACE:
+            self._restart_game()
 
     def _turn_east(self, key: int) -> bool:
         return key in (pygame.K_RIGHT, pygame.K_d)
@@ -93,10 +103,6 @@ class SnakeGame:
     def _turn_north(self, key: int) -> bool:
         return key in (pygame.K_UP, pygame.K_w)
 
-    def _remove_key(self, key: int) -> None:
-        if key in self._keys_pressed:
-            self._keys_pressed.remove(key)
-
     def _redraw(self) -> None:
         """Draws the board"""
         surface = pygame.display.get_surface()
@@ -106,6 +112,7 @@ class SnakeGame:
         elif self._phase == "GAME":
             self._draw_game(surface)
             self._draw_snake(surface)
+            self._blit_score(surface)
         elif self._phase == "GAME_OVER":
             self._draw_game_over(surface)
         pygame.display.flip()
@@ -125,26 +132,27 @@ class SnakeGame:
         self._starting_button = self._calculate_button_dimensions(surface)
         button_height = self._starting_button.height
         border_radius = _round(button_height / 10)
-        pygame.draw.rect(surface, BOARD_COLOR, self._starting_button, border_radius=border_radius)
-        pygame.draw.rect(surface, BOARD_BORDER_COLOR, self._starting_button, width=2, border_radius=border_radius)
+        pygame.draw.rect(surface, BUTTON_BACKGROUND_COLOR, self._starting_button, border_radius=border_radius)
+        pygame.draw.rect(surface, TEXT_COLOR, self._starting_button, width=2, border_radius=border_radius)
 
         # blitting the "START" text over the button
         font = pygame.font.SysFont(FONT, _round(button_height * 0.8))
-        text = font.render("START", True, BOARD_BORDER_COLOR)
+        text = font.render("START", True, TEXT_COLOR)
         text_box = text.get_rect()
         text_box.center = (width_pix / 2, height_pix / 2)
         surface.blit(text, text_box)
 
     def _blit_start_instructions(self, surface: pygame.Surface) -> None:
         """blits the starting instructions at the top of the screen for the starting screen."""
+        color = TEXT_COLOR
         width_pix = surface.get_width()
         height_pix = surface.get_height()
         font_height = _round(min(width_pix * 0.07, height_pix / 20))
         font = pygame.font.SysFont(FONT, font_height)
-        text1 = font.render("Left Arrow = Turn West", True, BOARD_BORDER_COLOR)
-        text2 = font.render("Right Arrow = Turn East", True, BOARD_BORDER_COLOR)
-        text3 = font.render("Down Arrow = Turn South", True, BOARD_BORDER_COLOR)
-        text4 = font.render("Up Arrow = Turn North", True, BOARD_BORDER_COLOR)
+        text1 = font.render("Left Arrow = Turn West", True, color)
+        text2 = font.render("Right Arrow = Turn East", True, color)
+        text3 = font.render("Down Arrow = Turn South", True, color)
+        text4 = font.render("Up Arrow = Turn North", True, color)
         text1_box, text2_box, text3_box, text4_box = text1.get_rect(), text2.get_rect(),\
                                                      text3.get_rect(), text4.get_rect()
         text1_box.center = (width_pix / 2, font_height * 1)
@@ -188,6 +196,11 @@ class SnakeGame:
             if (rect.centerx - rect.width / 2 < pos[0] < rect.centerx + rect.width / 2 and
                     rect.centery - rect.height / 2 < pos[1] < rect.centery + rect.height / 2):
                 self._phase = "GAME"
+        elif self._phase == "GAME_OVER":
+            rect = self._restart_button
+            if (rect.centerx - rect.width / 2 < pos[0] < rect.centerx + rect.width / 2 and
+                    rect.centery - rect.height / 2 < pos[1] < rect.centery + rect.height / 2):
+                self._restart_game()
 
     def _draw_game(self, surface: pygame.Surface) -> None:
         """draws the game board."""
@@ -207,7 +220,7 @@ class SnakeGame:
 
         # draws a border around the game, in a rectangle 2px wider and taller and 3px thick
         delta = 3
-        board_outline = pygame.Rect(top_left_x - delta + 1, top_left_y - delta + 1,
+        board_outline = pygame.Rect(top_left_x - delta, top_left_y - delta,
                                     game_width + 2 * delta - 1, game_height + 2 * delta - 1)
         pygame.draw.rect(surface, BOARD_BORDER_COLOR, board_outline, width=delta)
 
@@ -218,6 +231,8 @@ class SnakeGame:
         for delta_cols in range(1, COLUMNS):
             x_level = _round(top_left_x + delta_cols * (game_width / COLUMNS) - 1)
             pygame.draw.line(surface, BOARD_BORDER_COLOR, (x_level, top_left_y), (x_level, top_left_y + game_height - 2))
+
+        self._blit_score(surface)
 
     def _draw_snake(self, surface: pygame.Surface) -> None:
         """draws the snake on the surface"""
@@ -246,22 +261,71 @@ class SnakeGame:
             color = POINT_COLOR
         pygame.draw.ellipse(surface, color, bounding_rect)
 
-    def _draw_game_over(self, surface: pygame.Surface) -> None:
-        """Draws the game over screen."""
-        color = BOARD_BORDER_COLOR
+    def _blit_score(self, surface: pygame.Surface) -> None:
+        """blits the score at the top of the game screen"""
+        color = TEXT_COLOR
         width_pix = surface.get_width()
         height_pix = surface.get_height()
-        text_width = min(200, _round(width_pix * 0.7))
-        text_height = min(_round(text_width / (0.516 * 4)), _round(height_pix / 2 * 0.9))
+        text_width = min(100, _round(width_pix * 0.3))
+        text_height = min(_round(text_width / (1.4 * 4)), _round(height_pix / 2 * 0.1))
         font = pygame.font.SysFont(FONT, text_height)
-        text_game = font.render("GAME", True, color)
-        text_over = font.render("OVER", True, color)
-        text_box_game = text_game.get_rect()
-        text_box_over = text_over.get_rect()
-        text_box_game.center = (width_pix / 2, height_pix / 2 - 0.6 * text_height)
-        text_box_over.center = (width_pix / 2, height_pix / 2 + 0.6 * text_height)
-        surface.blit(text_game, text_box_game)
-        surface.blit(text_over, text_box_over)
+        text_current_score = font.render(f"Score = {self._current_score}", True, color)
+        text_high_score = font.render(f"High Score = {self._high_score}", True, color)
+        text_box_current_score = text_current_score.get_rect()
+        text_box_high_score = text_high_score.get_rect()
+        text_box_current_score.center = (width_pix * 0.15,  1.1 * text_height)
+        text_box_high_score.center = (width_pix * 0.4,  1.1 * text_height)
+        surface.blit(text_current_score, text_box_current_score)
+        surface.blit(text_high_score, text_box_high_score)
+
+    def _draw_game_over(self, surface: pygame.Surface) -> None:
+        """Draws the game over screen."""
+        color = TEXT_COLOR
+        width_pix = surface.get_width()
+        height_pix = surface.get_height()
+        text_width = min(300, _round(width_pix * 0.7))
+        text_height = min(_round(text_width / (1.3 * 4)), _round(height_pix / 2 * 0.5))
+        font = pygame.font.SysFont(FONT, text_height)
+        font_small = pygame.font.SysFont(FONT, _round(text_height * 0.8))
+        text_game_over = font.render("GAME OVER", True, color)
+        text_current_score = font_small.render(f"Score = {self._current_score}", True, color)
+        text_high_score = font_small.render(f"High Score = {self._high_score}", True, color)
+        text_box_game_over = text_game_over.get_rect()
+        text_box_current_score = text_current_score.get_rect()
+        text_box_high_score = text_high_score.get_rect()
+        text_box_game_over.center = (width_pix / 2, height_pix / 2 - 2.5 * text_height)
+        text_box_current_score.center = (width_pix / 2, height_pix / 2 - 1.3 * text_height)
+        text_box_high_score.center = (width_pix / 2, height_pix / 2 - 0.3 * text_height)
+        surface.blit(text_game_over, text_box_game_over)
+        surface.blit(text_current_score, text_box_current_score)
+        surface.blit(text_high_score, text_box_high_score)
+        self._draw_restart_button(surface)
+
+    def _draw_restart_button(self, surface: pygame.Surface) -> None:
+        """draws the restart button the user can press to restart the game after losing."""
+        width_pix = surface.get_width()
+        height_pix = surface.get_height()
+        # drawing the button
+        self._restart_button = self._calculate_button_dimensions(surface)
+        self._restart_button.centery = height_pix * 0.7
+        button_height = self._restart_button.height
+        border_radius = _round(button_height / 10)
+        pygame.draw.rect(surface, BUTTON_BACKGROUND_COLOR, self._restart_button, border_radius=border_radius)
+        pygame.draw.rect(surface, TEXT_COLOR, self._restart_button, width=2, border_radius=border_radius)
+
+        # blitting the "START" text over the button
+        font = pygame.font.SysFont(FONT, _round(button_height * 0.6))
+        text = font.render("RESTART", True, TEXT_COLOR)
+        text_box = text.get_rect()
+        text_box.center = (width_pix / 2, height_pix * 0.7)
+        surface.blit(text, text_box)
+
+    def _restart_game(self) -> None:
+        """restarts the game"""
+        self._game = python_snake_game_model.SnakeGameState(ROWS, COLUMNS)
+        self._phase = "GAME"
+        self._cycles = 0
+        self._current_score = 1
 
 
 

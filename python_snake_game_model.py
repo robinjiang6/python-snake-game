@@ -148,6 +148,10 @@ class SnakeGameState:
     def get_game_over(self) -> bool:
         return self._game_over
 
+    def get_snake_length(self) -> int:
+        """returns the length of the snake"""
+        return self._length
+
     # protected class methods
     def _prepare_print_board(self) -> str:
         """returns one str for the shell to print the board"""
@@ -205,7 +209,7 @@ class SnakeGameState:
 
     def _require_next_row_and_column_are_valid(self, row: int, col: int) -> None:
         """Sets game_over to True if the next position for the head is invalid"""
-        if not(0 <= row <= len(self._board)) or not(0 <= col <= len(self._board[0])):
+        if not(0 <= row < len(self._board)) or not(0 <= col < len(self._board[0])):
             self._game_over = True
             return
         if self._board[row][col].get_state() == "B" or self._board[row][col].get_state() == "H":
