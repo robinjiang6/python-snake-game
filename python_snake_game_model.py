@@ -224,7 +224,7 @@ class Block:
     def __init__(self, state: str = " ", next_value: 'Block | None' = None, direction: str | None = None,
                  row: int | None = None, col: int | None = None) -> None:
         """Initializes the attributes of a block. Only state is needed for a point or blank space.
-        next_value, prev_value, row and col are useful for parts of a snake. direction is for the head."""
+        next_value, direction, row, and col are useful for parts of a snake."""
         if state not in POSSIBLE_STATES:
             raise ValueError
         self._state = state
@@ -239,7 +239,7 @@ class Block:
                 self._row == other.get_row() and self._col == other.get_column())
 
     def __str__(self) -> str:
-        return "Block(state = \"" + self._state + "\"" + ")"
+        return f"Block(state = {self._state}, direction = {self._direction}, row = {self._row}, column = {self._col})"
 
     def __repr__(self) -> str:
         return self.__str__()
@@ -252,10 +252,7 @@ class Block:
         return self._next
 
     def get_direction(self) -> str:
-        """Only intended for use for the head of a snake"""
-        if self._state == "H":
-            return self._direction
-        raise ValueError
+        return self._direction
 
     def get_row(self) -> int:
         return self._row
@@ -277,4 +274,4 @@ class Block:
         self._direction = direction
 
     def make_copy(self) -> 'Block':
-        return Block(state=self.get_state())
+        return Block(state=self.get_state(), direction=self._direction, col=self._col, row=self._row, next_value=self._next)
