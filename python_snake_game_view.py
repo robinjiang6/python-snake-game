@@ -8,6 +8,7 @@ import python_snake_game_model
 
 # global constants
 TARGET_FRAMERATE = 30
+CYCLE_SPEED = TARGET_FRAMERATE/6
 ROWS = 9
 COLUMNS = 16
 FONT = "Arial"
@@ -46,11 +47,13 @@ class SnakeGame:
         while self._running:
             clock.tick(TARGET_FRAMERATE)
             self._cycles += 1
-            if self._cycles == TARGET_FRAMERATE/6:
+            if self._cycles == CYCLE_SPEED:
                 self._cycles = 0
                 if self._phase == "GAME":
                     self._game.progress_game()
                     self._current_score = self._game.get_snake_length()
+                    if self._current_score > self._high_score:
+                        self._high_score = self._current_score
             self._handle_events()
             self._redraw()
         pygame.quit()
@@ -67,8 +70,6 @@ class SnakeGame:
                 self._handle_click(event.pos)
         if self._game.get_game_over():
             self._phase = "GAME_OVER"
-            if self._current_score > self._high_score:
-                self._high_score = self._current_score
 
 
     def _resize_surface(self, size: tuple[int, int]) -> None:
@@ -254,12 +255,47 @@ class SnakeGame:
         width = self._game_rect.width / COLUMNS - 1
         height = self._game_rect.height / ROWS - 1
         bounding_rect = pygame.Rect(x, y, width, height)
-        color = BODY_COLOR
         if snake_part.get_state() == "H":
-            color = HEAD_COLOR
+            head_img = pygame.image.load('materwelon.png')
+            head_img = pygame.transform.scale(head_img, (width, height))
+            head_img = self._rotate_snake_head(head_img, snake_part)
+            img_x, img_y = self._calculate_snake_part_coordinates(x, y, width, height, snake_part)
+            surface.blit(head_img, (img_x, img_y))
         elif snake_part.get_state() == "P":
             color = POINT_COLOR
-        pygame.draw.ellipse(surface, color, bounding_rect)
+            pygame.draw.ellipse(surface, color, bounding_rect)
+        elif snake_part.get_state() == "B":
+            color = BODY_COLOR
+            img_x, img_y = self._calculate_snake_part_coordinates(x, y, width, height, snake_part)
+            bounding_rect.topleft = (img_x, img_y)
+            pygame.draw.ellipse(surface, color, bounding_rect)
+
+    def _rotate_snake_head(self, head_img: pygame.image, snake_part: python_snake_game_model.Block) -> pygame.image:
+        """rotates the snake block in accordance to the direction it is facing"""
+        return_img = head_img
+        match snake_part.get_direction():
+            case "N":
+                return_img = pygame.transform.rotate(head_img, 0)
+            case "E":
+                return_img = pygame.transform.rotate(head_img, 270)
+            case "S":
+                return_img = pygame.transform.rotate(head_img, 180)
+            case "W":
+                return_img = pygame.transform.rotate(head_img, 90)
+        return return_img
+
+    def _calculate_snake_part_coordinates(self, x: int, y: int, width: int, height: int, snake_part: python_snake_game_model.Block) -> tuple[int, int]:
+        """calculates the coordinates of the snake part so that it looks animated"""
+        match snake_part.get_direction():
+            case "N":
+                y = y - height / CYCLE_SPEED * self._cycles
+            case "E":
+                x = x + width / CYCLE_SPEED * self._cycles
+            case "S":
+                y = y + height / CYCLE_SPEED * self._cycles
+            case "W":
+                x = x - width / CYCLE_SPEED * self._cycles
+        return x, y
 
     def _blit_score(self, surface: pygame.Surface) -> None:
         """blits the score at the top of the game screen"""
