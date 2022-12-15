@@ -11,9 +11,11 @@ TARGET_FRAMERATE = 30
 ROWS = 9
 COLUMNS = 16
 FONT = "Arial"
-BACKGROUND_COLOR = pygame.Color(50, 150, 120)
-BOARD_COLOR = pygame.Color(0, 0, 0)
-BOARD_BORDER_COLOR = pygame.Color(255, 255, 255)
+BACKGROUND_COLOR = pygame.Color(7, 70, 77)
+TEXT_COLOR = pygame.Color(255, 255, 255)
+BOARD_COLOR = pygame.Color(6, 42, 46)
+BOARD_BORDER_COLOR = pygame.Color(11, 125, 138)
+BUTTON_BACKGROUND_COLOR = pygame.Color(13, 105, 115)
 BODY_COLOR = pygame.Color(50, 200, 100)
 HEAD_COLOR = pygame.Color(50, 100, 200)
 POINT_COLOR = pygame.Color(200, 50, 50)
@@ -130,26 +132,27 @@ class SnakeGame:
         self._starting_button = self._calculate_button_dimensions(surface)
         button_height = self._starting_button.height
         border_radius = _round(button_height / 10)
-        pygame.draw.rect(surface, BOARD_COLOR, self._starting_button, border_radius=border_radius)
-        pygame.draw.rect(surface, BOARD_BORDER_COLOR, self._starting_button, width=2, border_radius=border_radius)
+        pygame.draw.rect(surface, BUTTON_BACKGROUND_COLOR, self._starting_button, border_radius=border_radius)
+        pygame.draw.rect(surface, TEXT_COLOR, self._starting_button, width=2, border_radius=border_radius)
 
         # blitting the "START" text over the button
         font = pygame.font.SysFont(FONT, _round(button_height * 0.8))
-        text = font.render("START", True, BOARD_BORDER_COLOR)
+        text = font.render("START", True, TEXT_COLOR)
         text_box = text.get_rect()
         text_box.center = (width_pix / 2, height_pix / 2)
         surface.blit(text, text_box)
 
     def _blit_start_instructions(self, surface: pygame.Surface) -> None:
         """blits the starting instructions at the top of the screen for the starting screen."""
+        color = TEXT_COLOR
         width_pix = surface.get_width()
         height_pix = surface.get_height()
         font_height = _round(min(width_pix * 0.07, height_pix / 20))
         font = pygame.font.SysFont(FONT, font_height)
-        text1 = font.render("Left Arrow = Turn West", True, BOARD_BORDER_COLOR)
-        text2 = font.render("Right Arrow = Turn East", True, BOARD_BORDER_COLOR)
-        text3 = font.render("Down Arrow = Turn South", True, BOARD_BORDER_COLOR)
-        text4 = font.render("Up Arrow = Turn North", True, BOARD_BORDER_COLOR)
+        text1 = font.render("Left Arrow = Turn West", True, color)
+        text2 = font.render("Right Arrow = Turn East", True, color)
+        text3 = font.render("Down Arrow = Turn South", True, color)
+        text4 = font.render("Up Arrow = Turn North", True, color)
         text1_box, text2_box, text3_box, text4_box = text1.get_rect(), text2.get_rect(),\
                                                      text3.get_rect(), text4.get_rect()
         text1_box.center = (width_pix / 2, font_height * 1)
@@ -229,6 +232,8 @@ class SnakeGame:
             x_level = _round(top_left_x + delta_cols * (game_width / COLUMNS) - 1)
             pygame.draw.line(surface, BOARD_BORDER_COLOR, (x_level, top_left_y), (x_level, top_left_y + game_height - 2))
 
+        self._blit_score(surface)
+
     def _draw_snake(self, surface: pygame.Surface) -> None:
         """draws the snake on the surface"""
         game = self._game.get_board()
@@ -258,7 +263,7 @@ class SnakeGame:
 
     def _blit_score(self, surface: pygame.Surface) -> None:
         """blits the score at the top of the game screen"""
-        color = BOARD_BORDER_COLOR
+        color = TEXT_COLOR
         width_pix = surface.get_width()
         height_pix = surface.get_height()
         text_width = min(200, _round(width_pix * 0.7))
@@ -266,7 +271,7 @@ class SnakeGame:
 
     def _draw_game_over(self, surface: pygame.Surface) -> None:
         """Draws the game over screen."""
-        color = BOARD_BORDER_COLOR
+        color = TEXT_COLOR
         width_pix = surface.get_width()
         height_pix = surface.get_height()
         text_width = min(300, _round(width_pix * 0.7))
@@ -296,12 +301,12 @@ class SnakeGame:
         self._restart_button.centery = height_pix * 0.7
         button_height = self._restart_button.height
         border_radius = _round(button_height / 10)
-        pygame.draw.rect(surface, BOARD_COLOR, self._restart_button, border_radius=border_radius)
-        pygame.draw.rect(surface, BOARD_BORDER_COLOR, self._restart_button, width=2, border_radius=border_radius)
+        pygame.draw.rect(surface, BUTTON_BACKGROUND_COLOR, self._restart_button, border_radius=border_radius)
+        pygame.draw.rect(surface, TEXT_COLOR, self._restart_button, width=2, border_radius=border_radius)
 
         # blitting the "START" text over the button
         font = pygame.font.SysFont(FONT, _round(button_height * 0.6))
-        text = font.render("RESTART", True, BOARD_BORDER_COLOR)
+        text = font.render("RESTART", True, TEXT_COLOR)
         text_box = text.get_rect()
         text_box.center = (width_pix / 2, height_pix * 0.7)
         surface.blit(text, text_box)
