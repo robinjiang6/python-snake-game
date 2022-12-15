@@ -28,8 +28,9 @@ class SnakeGameState:
             for col in range(cols):
                 self._board[row].append(Block())
 
-        # pointers to the head and tail of the snake (represented by a doubly linked list)
+        # pointers to the head and tail of the snake (represented by a singly linked list)
         self._snake_head = self._create_snake()
+        self._snake_block_after_head = self._snake_head
         self._snake_tail = self._snake_head
 
         # dictionary for mapping direction and symbol for head of snake (only for shell game)
@@ -48,14 +49,19 @@ class SnakeGameState:
         # if the snake has already turned (it can only turn once per block)
         self._already_turned = False
 
+        # next move queue for turning
+        self._next_move = None
+
 
     def progress_game(self) -> None:
         self._require_game_not_over()
         next_row, next_col = self._calculate_next_block_location()
         if not self._game_over:
             self._already_turned = False
-            # next = down the snake towards the tail
-            # prev = towards the head
+            if self._next_move is not None:
+                self._next_move()
+                self._next_move = None
+            # next = towards the head
             next_head = Block(state="H", direction=self._snake_head.get_direction(), row=next_row, col=next_col,
                               next_value=self._snake_head)
             ate_point = self._board[next_row][next_col].get_state() == "P"
@@ -70,43 +76,51 @@ class SnakeGameState:
                 if ate_point:
                     # set game loop up to create new point
                     self._point_eaten = True
-
                 self._length += 1
             else:
                 to_del = self._snake_tail
-                self._snake_tail = self._snake_tail.get_prev()
-                self._snake_tail.set_next(None)
+                self._snake_tail = self._snake_tail.get_next()
                 self._board[to_del.get_row()][to_del.get_column()] = Block()
             self._board[next_row][next_col] = next_head
-            self._snake_head.set_previous(next_head)
+            self._snake_head.set_next(next_head)
             self._snake_head.set_state("B")
+            self._snake_block_after_head = self._snake_head
             self._snake_head = next_head
             if self._point_eaten:
                 self.create_random_point()
 
     def turn_north(self) -> None:
         """turns the snake north if possible"""
-        if self._snake_head.get_next().get_row() != self._snake_head.get_row() - 1 and not self._already_turned:
+
+        if self._snake_head.get_direction() in ("E", "W") and not self._already_turned:
             self._snake_head.set_direction("N")
             self._already_turned = True
+        elif self._already_turned and self._next_move is None:
+            self._next_move = self.turn_north
 
     def turn_east(self) -> None:
         """turns the snake east if possible"""
-        if self._snake_head.get_next().get_column() != self._snake_head.get_column() + 1 and not self._already_turned:
+        if self._snake_head.get_direction() in ("N", "S") and not self._already_turned:
             self._snake_head.set_direction("E")
             self._already_turned = True
+        elif self._already_turned and self._next_move is None:
+            self._next_move = self.turn_east
 
     def turn_south(self) -> None:
         """turns the snake south if possible"""
-        if self._snake_head.get_next().get_row() != self._snake_head.get_row() + 1 and not self._already_turned:
+        if self._snake_head.get_direction() in ("E", "W") and not self._already_turned:
             self._snake_head.set_direction("S")
             self._already_turned = True
+        elif self._already_turned and self._next_move is None:
+            self._next_move = self.turn_south
 
     def turn_west(self) -> None:
         """turns the snake west if possible"""
-        if self._snake_head.get_next().get_column() != self._snake_head.get_column() - 1 and not self._already_turned:
+        if self._snake_head.get_direction() in ("N", "S") and not self._already_turned:
             self._snake_head.set_direction("W")
             self._already_turned = True
+        elif self._already_turned and self._next_move is None:
+            self._next_move = self.turn_west
 
     def print_board(self) -> None:
         """prints the board"""
@@ -203,24 +217,23 @@ class SnakeGameState:
 
 
 class Block:
-    """Class that represents a block of the snake as part of a doubly linked list.
+    """Class that represents a block of the snake as part of a singly linked list from tail to head.
     Can also be used to represent a Point for the snake to eat, or a blank space."""
-    def __init__(self, state: str = " ", next_value: 'Block | None' = None, prev_value: 'Block | None' = None,
-                 direction: str | None = None, row: int | None = None, col: int | None = None) -> None:
+    def __init__(self, state: str = " ", next_value: 'Block | None' = None, direction: str | None = None,
+                 row: int | None = None, col: int | None = None) -> None:
         """Initializes the attributes of a block. Only state is needed for a point or blank space.
         next_value, prev_value, row and col are useful for parts of a snake. direction is for the head."""
         if state not in POSSIBLE_STATES:
             raise ValueError
         self._state = state
         self._next = next_value
-        self._prev = prev_value
         self._direction = direction
         self._row = row
         self._col = col
 
     def __eq__(self, other) -> bool:
-        return (self._state == other.get_state() and self._next == other.get_next() and
-                self._prev == other.get_prev() and self._direction == other.get_direction() and
+        return (self._state == other.get_state() and self._next == other.get_next()
+                and self._direction == other.get_direction() and
                 self._row == other.get_row() and self._col == other.get_column())
 
     def __str__(self) -> str:
@@ -236,10 +249,6 @@ class Block:
         """Returns a pointer to the next value, or None if there is none."""
         return self._next
 
-    def get_prev(self) -> 'Block':
-        """Returns a pointer to the previous value, or None if there is none."""
-        return self._prev
-
     def get_direction(self) -> str:
         """Only intended for use for the head of a snake"""
         if self._state == "H":
@@ -254,9 +263,6 @@ class Block:
 
     def set_next(self, next_block: 'Block | None') -> None:
         self._next = next_block
-
-    def set_previous(self, prev_block: 'Block | None') -> None:
-        self._prev = prev_block
 
     def set_state(self, state: str) -> None:
         if state not in POSSIBLE_STATES:

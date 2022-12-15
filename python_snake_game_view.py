@@ -17,6 +17,8 @@ BOARD_BORDER_COLOR = pygame.Color(255, 255, 255)
 BODY_COLOR = pygame.Color(50, 200, 100)
 HEAD_COLOR = pygame.Color(50, 100, 200)
 POINT_COLOR = pygame.Color(200, 50, 50)
+KEY_DICT = {pygame.K_LEFT: "LEFT", pygame.K_a: "LEFT", pygame.K_UP: "UP", pygame.K_w: "UP", pygame.K_s: "DOWN", pygame.K_DOWN: "DOWN", pygame.K_d: "RIGHT", pygame.K_RIGHT: "RIGHT"}
+
 
 class SnakeGame:
     """class that implements the pygame view of a snake game"""
@@ -27,6 +29,7 @@ class SnakeGame:
         self._phase = "START"
         self._starting_button = None
         self._game_rect = None
+        self._keys_pressed = []
 
     def run(self) -> None:
         pygame.init()
@@ -41,7 +44,6 @@ class SnakeGame:
                 self._cycles = 0
                 if self._phase == "GAME":
                     self._game.progress_game()
-            self._turn_snake_using_keys_held_down()
             self._handle_events()
             self._redraw()
         pygame.quit()
@@ -53,10 +55,13 @@ class SnakeGame:
             if event.type == pygame.QUIT:
                 self._running = False
             elif event.type == pygame.KEYDOWN:
-                pass
-                #self._turn_snake(event.key)
+                self._turn_snake(event.key)
+            elif event.type == pygame.KEYUP:
+                self._remove_key(event.key)
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 self._handle_click(event.pos)
+        if self._game.get_game_over():
+            self._phase = "GAME_OVER"
 
     def _resize_surface(self, size: tuple[int, int]) -> None:
         """Resizes the pygame window to the size."""
@@ -64,21 +69,33 @@ class SnakeGame:
 
     def _turn_snake(self, key: int) -> None:
         """handles keystrokes to turn the snake when the key is first pressed down"""
-
-    def _turn_snake_using_keys_held_down(self) -> None:
-        """handles keystrokes to turn the snake using keys that are already down"""
-        keys = pygame.key.get_pressed()
         if self._phase == "GAME":
-            if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
+            if self._turn_east(key):
                 self._game.turn_east()
-            if keys[pygame.K_DOWN] or keys[pygame.K_s]:
+            elif self._turn_south(key):
                 self._game.turn_south()
-            if keys[pygame.K_LEFT] or keys[pygame.K_a]:
+            elif self._turn_west(key):
                 self._game.turn_west()
-            if keys[pygame.K_UP] or keys[pygame.K_w]:
+            elif self._turn_north(key):
                 self._game.turn_north()
-        if keys[pygame.K_SPACE] and self._phase == "START":
+        elif self._phase == "START" and key == pygame.K_SPACE:
             self._phase = "GAME"
+
+    def _turn_east(self, key: int) -> bool:
+        return key in (pygame.K_RIGHT, pygame.K_d)
+
+    def _turn_south(self, key: int) -> bool:
+        return key in (pygame.K_DOWN, pygame.K_s)
+
+    def _turn_west(self, key: int) -> bool:
+        return key in (pygame.K_LEFT, pygame.K_a)
+
+    def _turn_north(self, key: int) -> bool:
+        return key in (pygame.K_UP, pygame.K_w)
+
+    def _remove_key(self, key: int) -> None:
+        if key in self._keys_pressed:
+            self._keys_pressed.remove(key)
 
     def _redraw(self) -> None:
         """Draws the board"""
@@ -89,6 +106,8 @@ class SnakeGame:
         elif self._phase == "GAME":
             self._draw_game(surface)
             self._draw_snake(surface)
+        elif self._phase == "GAME_OVER":
+            self._draw_game_over(surface)
         pygame.display.flip()
 
     def _draw_start_screen(self, surface: pygame.Surface) -> None:
@@ -210,15 +229,15 @@ class SnakeGame:
                 if state != " ":
                     # add one pixel to the center because the lines of the board are
                     # 1 pixel wide, which offsets the parts
-                    part_x = _round(self._game_rect.topleft[0] + (col) * self._game_rect.width / COLUMNS) + 1
-                    part_y = _round(self._game_rect.topleft[1] + (row) * self._game_rect.height / ROWS) + 1
+                    part_x = _round(self._game_rect.topleft[0] + (col) * self._game_rect.width / COLUMNS)
+                    part_y = _round(self._game_rect.topleft[1] + (row) * self._game_rect.height / ROWS)
                     self._draw_snake_part(part_x, part_y, snake_part, surface)
 
     def _draw_snake_part(self, x: int, y: int, snake_part: python_snake_game_model.Block, surface: pygame.Surface) -> None:
         """Draws one snake part with the top left coordinate of the bounding box being the given x and y."""
         # subtract 1 from width to fit inside the box from trial and error
         width = self._game_rect.width / COLUMNS - 1
-        height = self._game_rect.height / ROWS
+        height = self._game_rect.height / ROWS - 1
         bounding_rect = pygame.Rect(x, y, width, height)
         color = BODY_COLOR
         if snake_part.get_state() == "H":
@@ -226,6 +245,23 @@ class SnakeGame:
         elif snake_part.get_state() == "P":
             color = POINT_COLOR
         pygame.draw.ellipse(surface, color, bounding_rect)
+
+    def _draw_game_over(self, surface: pygame.Surface) -> None:
+        """Draws the game over screen."""
+        color = BOARD_BORDER_COLOR
+        width_pix = surface.get_width()
+        height_pix = surface.get_height()
+        text_width = min(200, _round(width_pix * 0.7))
+        text_height = min(_round(text_width / (0.516 * 4)), _round(height_pix / 2 * 0.9))
+        font = pygame.font.SysFont(FONT, text_height)
+        text_game = font.render("GAME", True, color)
+        text_over = font.render("OVER", True, color)
+        text_box_game = text_game.get_rect()
+        text_box_over = text_over.get_rect()
+        text_box_game.center = (width_pix / 2, height_pix / 2 - 0.6 * text_height)
+        text_box_over.center = (width_pix / 2, height_pix / 2 + 0.6 * text_height)
+        surface.blit(text_game, text_box_game)
+        surface.blit(text_over, text_box_over)
 
 
 

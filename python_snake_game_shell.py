@@ -23,6 +23,7 @@ def run() -> None:
         elif next_move == "A":
             game.turn_west()
         game.print_board()
+        print(game._already_turned)
     print()
     print("GAME OVER")
 
