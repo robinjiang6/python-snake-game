@@ -19,7 +19,7 @@ BUTTON_BACKGROUND_COLOR = pygame.Color(13, 105, 115)
 BODY_COLOR = pygame.Color(50, 200, 100)
 HEAD_COLOR = pygame.Color(50, 100, 200)
 POINT_COLOR = pygame.Color(200, 50, 50)
-KEY_DICT = {pygame.K_LEFT: "LEFT", pygame.K_a: "LEFT", pygame.K_UP: "UP", pygame.K_w: "UP", pygame.K_s: "DOWN", pygame.K_DOWN: "DOWN", pygame.K_d: "RIGHT", pygame.K_RIGHT: "RIGHT"}
+#KEY_DICT = {pygame.K_LEFT: "LEFT", pygame.K_a: "LEFT", pygame.K_UP: "UP", pygame.K_w: "UP", pygame.K_s: "DOWN", pygame.K_DOWN: "DOWN", pygame.K_d: "RIGHT", pygame.K_RIGHT: "RIGHT"}
 
 
 class SnakeGame:
@@ -266,8 +266,17 @@ class SnakeGame:
         color = TEXT_COLOR
         width_pix = surface.get_width()
         height_pix = surface.get_height()
-        text_width = min(200, _round(width_pix * 0.7))
-        text_height = min(_round(text_width / (0.516 * 4)), _round(height_pix / 2 * 0.9))
+        text_width = min(100, _round(width_pix * 0.3))
+        text_height = min(_round(text_width / (1.4 * 4)), _round(height_pix / 2 * 0.1))
+        font = pygame.font.SysFont(FONT, text_height)
+        text_current_score = font.render(f"Score = {self._current_score}", True, color)
+        text_high_score = font.render(f"High Score = {self._high_score}", True, color)
+        text_box_current_score = text_current_score.get_rect()
+        text_box_high_score = text_high_score.get_rect()
+        text_box_current_score.center = (width_pix * 0.15,  1.1 * text_height)
+        text_box_high_score.center = (width_pix * 0.4,  1.1 * text_height)
+        surface.blit(text_current_score, text_box_current_score)
+        surface.blit(text_high_score, text_box_high_score)
 
     def _draw_game_over(self, surface: pygame.Surface) -> None:
         """Draws the game over screen."""
