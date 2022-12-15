@@ -30,7 +30,6 @@ class SnakeGameState:
 
         # pointers to the head and tail of the snake (represented by a singly linked list)
         self._snake_head = self._create_snake()
-        self._snake_block_after_head = self._snake_head
         self._snake_tail = self._snake_head
 
         # dictionary for mapping direction and symbol for head of snake (only for shell game)
@@ -84,7 +83,6 @@ class SnakeGameState:
             self._board[next_row][next_col] = next_head
             self._snake_head.set_next(next_head)
             self._snake_head.set_state("B")
-            self._snake_block_after_head = self._snake_head
             self._snake_head = next_head
             if self._point_eaten:
                 self.create_random_point()
