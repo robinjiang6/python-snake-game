@@ -51,18 +51,18 @@ class SnakeGameState:
         # next move queue for turning
         self._next_move = None
 
+        # point coordinates
+        self._point_coordinates = None
+
 
     def progress_game(self) -> None:
         self._require_game_not_over()
         next_row, next_col = self._calculate_next_block_location()
         if not self._game_over:
             self._already_turned = False
-            if self._next_move is not None:
-                self._next_move()
-                self._next_move = None
             # next = towards the head
             next_head = Block(state="H", direction=self._snake_head.get_direction(), row=next_row, col=next_col,
-                              next_value=self._snake_head)
+                              next_value=None)
             ate_point = self._board[next_row][next_col].get_state() == "P"
             too_short = self._length < 3
             if ate_point or too_short or self._still_growing:
@@ -84,6 +84,9 @@ class SnakeGameState:
             self._snake_head.set_next(next_head)
             self._snake_head.set_state("B")
             self._snake_head = next_head
+            if self._next_move is not None:
+                self._next_move()
+                self._next_move = None
             if self._point_eaten:
                 self.create_random_point()
 
@@ -142,7 +145,8 @@ class SnakeGameState:
                     # empty board spot
                     eligible_blocks.append((row, col))
         row, col = random.choice(eligible_blocks)
-        self._board[row][col].set_state("P")
+        self._point_coordinates = (row, col)
+        self._board[row][col] = Block(row=row, col=col, state="P")
         self._point_eaten = False
 
     def get_game_over(self) -> bool:
@@ -151,6 +155,12 @@ class SnakeGameState:
     def get_snake_length(self) -> int:
         """returns the length of the snake"""
         return self._length
+
+    def get_snake_tail(self) -> 'Block':
+        return self._snake_tail
+
+    def get_point_coordinates(self) -> tuple[int, int]:
+        return self._point_coordinates
 
     # protected class methods
     def _prepare_print_board(self) -> str:
@@ -232,6 +242,7 @@ class Block:
         self._direction = direction
         self._row = row
         self._col = col
+        self._previous_direction = direction
 
     def __eq__(self, other) -> bool:
         return (self._state == other.get_state() and self._next == other.get_next()
@@ -239,7 +250,8 @@ class Block:
                 self._row == other.get_row() and self._col == other.get_column())
 
     def __str__(self) -> str:
-        return f"Block(state = {self._state}, direction = {self._direction}, row = {self._row}, column = {self._col})"
+        return f"Block(state = {self._state}, direction = {self._direction}, " \
+               f"previous direction = {self._previous_direction}, row = {self._row}, column = {self._col})"
 
     def __repr__(self) -> str:
         return self.__str__()
@@ -253,6 +265,9 @@ class Block:
 
     def get_direction(self) -> str:
         return self._direction
+
+    def get_previous_direction(self) -> str:
+        return self._previous_direction
 
     def get_row(self) -> int:
         return self._row
@@ -272,6 +287,11 @@ class Block:
         if direction not in "NESW":
             raise ValueError
         self._direction = direction
+
+    def set_previous_direction(self, direction: str) -> None:
+        if direction not in "NESW":
+            raise ValueError
+        self._previous_direction = direction
 
     def make_copy(self) -> 'Block':
         return Block(state=self.get_state(), direction=self._direction, col=self._col, row=self._row, next_value=self._next)
