@@ -32,6 +32,7 @@ class SnakeGame:
     def __init__(self) -> None:
         self._running = True
         self._cycles = 0
+        self._point_cycles = 0
         self._game = python_snake_game_model.SnakeGameState(ROWS, COLUMNS)
         # possible phases: "START", "GAME", "GAME_OVER_ANIMATION", "GAME_OVER"
         self._phase = "START"
@@ -55,6 +56,7 @@ class SnakeGame:
         while self._running:
             clock.tick(TARGET_FRAMERATE)
             self._cycles += 1
+            self._point_cycles += 1
             if self._cycles == CYCLE_SPEED:
                 self._cycles = 0
                 if self._phase == "GAME":
@@ -62,6 +64,8 @@ class SnakeGame:
                     self._update_score()
                 if self._phase == "GAME_OVER_ANIMATION":
                     self._phase = "GAME_OVER"
+            if self._point_cycles == 8 * CYCLE_SPEED:
+                self._point_cycles = 0
             self._handle_events()
             self._redraw()
         pygame.quit()
@@ -291,8 +295,18 @@ class SnakeGame:
             img_x, img_y = self._calculate_snake_part_coordinates(x, y, width, height, snake_part)
             surface.blit(head_img, (img_x, img_y))
         elif snake_part.get_state() == "P":
-            color = POINT_COLOR
-            pygame.draw.ellipse(surface, color, bounding_rect)
+            point_img = pygame.image.load('strawberry.png')
+            if self._point_cycles <= 20:
+                img_width = width * 0.7 + width * 0.3 * (self._point_cycles/(4 * CYCLE_SPEED))
+                img_height =  height * 0.7 + height * 0.3 * (self._point_cycles/(4 * CYCLE_SPEED))
+                point_img = pygame.transform.scale(point_img, (img_width, img_height))
+            else:
+                img_width = width - width * 0.3 * ((self._point_cycles - 20)/(4 * CYCLE_SPEED))
+                img_height = height - height * 0.3 * ((self._point_cycles - 20)/(4 * CYCLE_SPEED))
+                point_img = pygame.transform.scale(point_img, (img_width, img_height))
+            point_img = self._rotate_snake_head(point_img, snake_part)
+            img_x, img_y = (x + (width - img_width)/2, y + (height - img_height)/2)
+            surface.blit(point_img, (img_x, img_y))
         elif snake_part.get_state() == "B":
             pic_link = self._img_link_tuple[pos % 2]
             body_img = pygame.image.load(pic_link)
@@ -304,31 +318,6 @@ class SnakeGame:
     def _rotate_snake_head(self, head_img: pygame.image, snake_part: python_snake_game_model.Block) -> pygame.image:
         """rotates the snake block in accordance to the direction it is facing"""
         return_img = head_img
-
-        # intermediate images turning:
-        """
-        previous_direction = snake_part.get_previous_direction()
-        ns_multiplier = 0
-        ew_multiplier = 0
-        if previous_direction == "E":
-            ns_multiplier = -1
-        elif previous_direction == "W":
-            ns_multiplier = 1
-        elif previous_direction == "N":
-            ew_multiplier = 1
-        elif previous_direction == "S":
-            ew_multiplier = -1
-        match snake_part.get_direction():
-            case "N":
-                return_img = pygame.transform.rotate(head_img, 0 + ns_multiplier * (CYCLE_SPEED - min(CYCLE_SPEED, self._cycles * 2)) * 90 / CYCLE_SPEED)
-            case "E":
-                return_img = pygame.transform.rotate(head_img, 270 + ew_multiplier * (CYCLE_SPEED - min(CYCLE_SPEED, self._cycles * 2)) * 90 / CYCLE_SPEED)
-            case "S":
-                return_img = pygame.transform.rotate(head_img, 180 - ns_multiplier * (CYCLE_SPEED - min(CYCLE_SPEED, self._cycles * 2)) * 90 / CYCLE_SPEED)
-            case "W":
-                return_img = pygame.transform.rotate(head_img, 90 - ew_multiplier * (CYCLE_SPEED - min(CYCLE_SPEED, self._cycles * 2)) * 90 / CYCLE_SPEED)
-        """
-
         # no intermediate images turning:
         match snake_part.get_direction():
             case "N":
