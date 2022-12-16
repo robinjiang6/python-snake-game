@@ -6,6 +6,7 @@
 import pygame
 import python_snake_game_model
 import random
+from pathlib import Path
 
 # global constants
 TARGET_FRAMERATE = 30
@@ -29,11 +30,34 @@ POINT_COLOR = pygame.Color(200, 50, 50)
 class SnakeGame:
     """class that implements the pygame view of a snake game"""
 
-    def __init__(self) -> None:
+    def __init__(self, **kwargs: 'paths to images') -> None:
+        """init method that initializes all class attributes"""
+        # initializing paths
+        self._image_paths = {
+                             'avogadro': Path('./img/avogadro.png'),
+                             'bananabit': Path('./img/bananabit.png'),
+                             'materwelon': Path('./img/materwelon.png'),
+                             'strawberry': Path('./img/strawberry.png'),
+                             'icon': Path('./img/materwelon.ico')
+                             }
+        for arg in kwargs:
+            if arg == 'avogadro':
+                self._image_paths['avogadro'] = kwargs[arg]
+            elif arg == 'bananabit':
+                self._image_paths['bananabit'] = kwargs[arg]
+            elif arg == 'materwelon':
+                self._image_paths['materwelon'] = kwargs[arg]
+            elif arg == 'strawberry':
+                self._image_paths['strawberry'] = kwargs[arg]
+            elif arg == 'icon':
+                self._image_paths['icon'] = kwargs[arg]
+
+        # attributes to use when running through game loop
         self._running = True
         self._cycles = 0
         self._point_cycles = 0
         self._game = python_snake_game_model.SnakeGameState(ROWS, COLUMNS)
+
         # possible phases: "START", "GAME", "GAME_OVER_ANIMATION", "GAME_OVER"
         self._phase = "START"
         self._starting_button = None
@@ -45,14 +69,16 @@ class SnakeGame:
         self._current_score = 1
 
         # tuple of possible links to images for body
-        self._img_link_tuple = random.choice((('avogadro.png', 'bananabit.png'), ('bananabit.png', 'avogadro.png')))
+        self._img_link_tuple = random.choice(((self._image_paths['avogadro'], self._image_paths['bananabit']),
+                                              (self._image_paths['bananabit'], self._image_paths['avogadro'])))
 
     def run(self) -> None:
         pygame.init()
         box_width = 50
         self._resize_surface((16 * box_width, 9 * box_width))
         clock = pygame.time.Clock()
-
+        pygame.display.set_caption('Snake')
+        pygame.display.set_icon(pygame.image.load(self._image_paths['icon']))
         while self._running:
             clock.tick(TARGET_FRAMERATE)
             self._cycles += 1
@@ -289,16 +315,16 @@ class SnakeGame:
         height = self._game_rect.height / ROWS - 1
         bounding_rect = pygame.Rect(x, y, width, height)
         if snake_part.get_state() == "H":
-            head_img = pygame.image.load('materwelon.png')
+            head_img = pygame.image.load(self._image_paths['materwelon'])
             head_img = pygame.transform.scale(head_img, (width, height))
             head_img = self._rotate_snake_head(head_img, snake_part)
             img_x, img_y = self._calculate_snake_part_coordinates(x, y, width, height, snake_part)
             surface.blit(head_img, (img_x, img_y))
         elif snake_part.get_state() == "P":
-            point_img = pygame.image.load('strawberry.png')
+            point_img = pygame.image.load(self._image_paths['strawberry'])
             if self._point_cycles <= 20:
                 img_width = width * 0.7 + width * 0.3 * (self._point_cycles/(4 * CYCLE_SPEED))
-                img_height =  height * 0.7 + height * 0.3 * (self._point_cycles/(4 * CYCLE_SPEED))
+                img_height = height * 0.7 + height * 0.3 * (self._point_cycles/(4 * CYCLE_SPEED))
                 point_img = pygame.transform.scale(point_img, (img_width, img_height))
             else:
                 img_width = width - width * 0.3 * ((self._point_cycles - 20)/(4 * CYCLE_SPEED))
